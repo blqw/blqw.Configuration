@@ -68,6 +68,7 @@ namespace blqw.Configuration
                     var node = i.IsKey ? base[i.Key] : base[i.Index];
                     while (ee.MoveNext())
                     {
+                        i = ee.Current;
                         node = i.IsKey ? node[i.Key] : node[i.Index];
                     }
                     return node;
@@ -94,6 +95,7 @@ namespace blqw.Configuration
                     var node = i.IsKey ? base[i.Key] : base[i.Index];
                     if (ee.MoveNext() == false)
                     {
+                        i = ee.Current;
                         if (i.IsKey)
                         {
                             base[i.Key] = value;
@@ -107,6 +109,7 @@ namespace blqw.Configuration
 
                     do
                     {
+                        i = ee.Current;
                         node = i.IsKey ? node[i.Key] : node[i.Index];
                     } while (ee.MoveNext());
 

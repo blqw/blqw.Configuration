@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace blqw.Configuration
 {
@@ -13,6 +15,28 @@ namespace blqw.Configuration
     {
         static Configs()
         {
+            //var xml = new XmlDocument();
+            //xml.LoadXml(File.ReadAllText(AppDomain.CurrentDomain.SetupInformation.ConfigurationFile));
+            //var nodes = xml.SelectNodes("/configuration/connectionStrings/*");
+            var appsettings = System.Configuration.ConfigurationManager.AppSettings;
+            AppSettings = new Config();
+            var builder = new System.Data.Common.DbConnectionStringBuilder(false);
+            foreach (string name in appsettings)
+            {
+                var value = appsettings[name];
+                var node = AppSettings[name];
+                AddOrSet(node, value);
+                try
+                {
+                    builder.ConnectionString = value;
+                    foreach (string key in builder.Keys)
+                    {
+                        AddOrSet(node[key], builder[key]);
+                    }
+                }
+                catch { }
+            }
+
 
             //ConnectionStrings = new NameValueCollection();
             //ConnectionProviders = new NameValueCollection();
@@ -24,6 +48,25 @@ namespace blqw.Configuration
             //AppSettings = System.Configuration.ConfigurationManager.AppSettings;
             //IsDebug = string.Equals(AppSettings["DEBUG"], "true", StringComparison.OrdinalIgnoreCase);
         }
+
+
+        /// <summary>
+        /// 添加或设置值
+        /// </summary>
+        public static void AddOrSet(ConfigNode node, object value)
+        {
+            if (node.HasList)
+            {
+                node.Add(value);
+            }
+            else if (node.HasValue)
+            {
+                node.Add(node.Value);
+                node.Add(value);
+            }
+            node.Value = value;
+        }
+
         /// <summary> 获取当前应用程序默认配置的 System.Configuration.AppSettingsSection 数据。
         /// </summary>
         public readonly static Config AppSettings;

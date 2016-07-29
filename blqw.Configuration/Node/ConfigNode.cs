@@ -10,7 +10,7 @@ namespace blqw.Configuration
     /// <summary>
     /// 表示一个配置节点
     /// </summary>
-    public class ConfigNode : IConfigNode
+    public class ConfigNode : IConfigNode, IEquatable<object>
     {
         protected ConfigNode()
         {
@@ -455,5 +455,29 @@ namespace blqw.Configuration
         {
 
         }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is ConfigNode)
+            {
+                return ReferenceEquals(this, obj);
+            }
+            if (this.HasValue)
+            {
+                return Equals(this.Value, obj);
+            }
+            return false;
+        }
+
+        public static bool operator ==(ConfigNode a, object b)
+        {
+            return a?.Equals(b) ?? b == null;
+        }
+
+        public static bool operator !=(ConfigNode a, object b)
+        {
+            return !(a?.Equals(b) ?? b == null);
+        }
+
     }
 }

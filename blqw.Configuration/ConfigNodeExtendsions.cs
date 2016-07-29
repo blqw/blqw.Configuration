@@ -36,15 +36,6 @@ namespace blqw.Configuration
             return node;
         }
 
-        /// <summary>
-        /// 设置
-        /// </summary>
-        /// <param name="node"></param>
-        /// <param name="value"></param>
-        public static void SetBuildString(this ConfigNode node, string value)
-        {
-
-        }
 
     }
 }
