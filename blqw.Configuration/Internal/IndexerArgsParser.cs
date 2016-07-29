@@ -13,13 +13,19 @@ namespace blqw.Configuration
     /// </summary>
     struct IndexerArgsParser : IEnumerable<IndexerArgs>
     {
-        public IndexerArgsParser(string str)
+        public IndexerArgsParser(string path)
         {
-            if (string.IsNullOrEmpty(str))
-                throw new ArgumentNullException(nameof(str));
             _index = 0;
-            _chars = str.ToCharArray();
-            _length = str.Length;
+            if (string.IsNullOrEmpty(path))
+            {
+                _length = 0;
+                _chars = null;
+            }
+            else
+            {
+                _chars = path.ToCharArray();
+                _length = path.Length;
+            }
         }
 
         int _index;

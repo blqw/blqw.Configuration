@@ -59,18 +59,19 @@ namespace blqw.Configuration
             }
             set
             {
-                if (IsReadOnly)
+                ThrowIfSetError();
+                if (value == null)
                 {
-                    throw new NotSupportedException("当前节点是只读的");
+                    throw new ArgumentNullException(nameof(value));
                 }
                 if (string.IsNullOrEmpty(key))
                 {
-                    throw new ArgumentNullException(nameof(key));
+                    throw new ArgumentNullException(nameof(key), $"{key}不能是空或空字符串");
                 }
                 ConfigNode node;
                 if (Dictionary == null)
                 {
-                    Dictionary = new Dictionary<string, ConfigNode>();
+                    Dictionary = new Dictionary<string, ConfigNode>(StringComparer.OrdinalIgnoreCase);
                 }
                 else if (Dictionary.TryGetValue(key, out node))
                 {
@@ -81,9 +82,10 @@ namespace blqw.Configuration
                     node.Remove();
                 }
                 Dictionary[key] = value;
-                Self(value);
+                BelongMine(value);
             }
         }
+
         /// <summary>
         /// 通过索引获取或设置子节点
         /// </summary>
@@ -101,7 +103,6 @@ namespace blqw.Configuration
                 {
 
                     var node = CreateTemporary();
-                    node.IsTemporary = true;
                     node.Parent = this;
                     node._index = index;
                     return node;
@@ -110,41 +111,25 @@ namespace blqw.Configuration
             }
             set
             {
-                if (IsReadOnly)
+                ThrowIfSetError();
+                if (value == null)
                 {
-                    throw new NotSupportedException("当前节点是只读的");
+                    throw new ArgumentNullException(nameof(value));
                 }
                 if (index < 0)
                     throw new ArgumentOutOfRangeException(nameof(index), $"`{nameof(index)}`={index} 无效");
-                if (this.List == null && index == 0)
-                {
-                    this.List = new List<ConfigNode>();
-                    this.List.Add(value);
-                }
-                else if (this.List != null && index <= this.List.Count)
-                {
-                    if (index == this.List.Count)
-                    {
-                        this.List.Add(value);
-                    }
-                    else
-                    {
-                        this.List[index] = value;
-                    }
-                }
-                else
-                {
-                    throw new NotSupportedException("暂时不能插入这个节点,这可能是因为索引过大");
-                }
-                Self(value);
+                value._index = index;
+                BelongMine(value);
             }
         }
+
         /// <summary>
-        /// 将节点保存到自己名下
+        /// 将节点保存为自己的子节点
         /// </summary>
         /// <param name="node"></param>
-        private void Self(ConfigNode node)
+        internal void BelongMine(ConfigNode node)
         {
+            //判断节点之间的关系
             if (node == this)
             {
                 throw new NotSupportedException("自己不能成为自己的子节点");
@@ -158,22 +143,64 @@ namespace blqw.Configuration
                 }
                 p = p.Parent;
             }
-            if (node.Parent != null && node.IsTemporary == false)
+            //如果有父节点,从父节点移除
+            if (node.Parent != null)
             {
                 node.Remove();
             }
-            node.Parent = this;
-            node.IsTemporary = false;
-            if (IsTemporary && Parent != null)
+
+            //添加到父节点
+            if (node.Key != null)
             {
-                if (Key != null)
+                ConfigNode n;
+                if (Dictionary == null)
                 {
-                    Parent[Key] = this;
+                    Dictionary = new Dictionary<string, ConfigNode>(StringComparer.OrdinalIgnoreCase);
+                }
+                else if (Dictionary.TryGetValue(node.Key, out n))
+                {
+                    if (n == node)
+                    {
+                        return;
+                    }
+                    n.Remove();
+                }
+                Dictionary[node.Key] = node;
+            }
+            else
+            {
+                var index = node._index;
+                if (index > (this.List?.Count ?? 0) && index < int.MaxValue)
+                {
+                    throw new NotSupportedException("暂时不能插入这个节点,这可能是因为索引过大");
+                }
+                if (this.List == null)
+                {
+                    this.List = new List<ConfigNode>();
+                }
+
+                if (index == this.List.Count || index == int.MaxValue)
+                {
+                    this.List.Add(node);
                 }
                 else
                 {
-                    Parent[this._index] = this;
+                    this.List[index]?.Remove();
+                    this.List.Insert(index, node);
                 }
+            }
+
+            //设置新的父节点
+            node.Parent = this;
+            //移除临时节点
+            node.IsTemporary = false;
+            //触发事件
+            OnAppendChildNode(node);
+
+            //如果自身是临时节点,则将自身加到准父节点中
+            if (IsTemporary)
+            {
+                Parent?.BelongMine(this);
             }
         }
 
@@ -188,24 +215,10 @@ namespace blqw.Configuration
             }
             set
             {
-                if (IsReadOnly)
-                {
-                    throw new NotSupportedException("当前节点是只读的");
-                }
+                ThrowIfSetError();
                 if (value is ConfigNode)
                 {
                     throw new NotSupportedException($"`{nameof(value)}`不能是`{nameof(ConfigNode)}`类型");
-                }
-                if (IsTemporary && Parent != null)
-                {
-                    if (Key != null)
-                    {
-                        Parent[Key] = this;
-                    }
-                    else
-                    {
-                        Parent[this._index] = this;
-                    }
                 }
 
                 if (value is DBNull)
@@ -216,10 +229,10 @@ namespace blqw.Configuration
                 {
                     this._value = value;
                 }
-
+                Parent?.BelongMine(this);
             }
         }
-        
+
         /// <summary>
         /// 用于存储集合数据
         /// </summary>
@@ -290,7 +303,7 @@ namespace blqw.Configuration
             }
             if (this.Dictionary != null)
             {
-                clone.Dictionary = new Dictionary<string, ConfigNode>();
+                clone.Dictionary = new Dictionary<string, ConfigNode>(StringComparer.OrdinalIgnoreCase);
                 foreach (var node in this.Dictionary.Values)
                 {
                     clone.Dictionary.Add(node.Key, node.Clone());
@@ -304,7 +317,7 @@ namespace blqw.Configuration
         /// </summary>
         public void Remove()
         {
-            if (Parent == null) return;
+            if (Parent == null || IsTemporary) return;
             if (Key != null)
             {
                 Parent.Dictionary.Remove(Key);
@@ -314,6 +327,8 @@ namespace blqw.Configuration
                 Parent.List.Remove(this);
             }
             Parent = null;
+            IsTemporary = true;
+            OnRemoveChildNode(this);
         }
 
         /// <summary>
@@ -337,6 +352,31 @@ namespace blqw.Configuration
             });
             this.Dictionary?.Clear();
             this.IsReadOnly = true;
+        }
+
+        private void ThrowIfSetError()
+        {
+            if (IsReadOnly)
+            {
+                if (ReferenceEquals(this, Invalid))
+                {
+                    throw new NotSupportedException("当前节点无效");
+                }
+                throw new NotSupportedException("当前节点是只读的");
+            }
+        }
+
+        /// <summary>
+        /// 添加值到当前的节点的列表
+        /// </summary>
+        /// <param name="value"></param>
+        public virtual void Add(object value)
+        {
+            ThrowIfSetError();
+            var node = CreateTemporary();
+            node.Parent = this;
+            node._index = int.MaxValue;
+            node.Value = value;
         }
 
         object ICloneable.Clone()
@@ -392,7 +432,7 @@ namespace blqw.Configuration
 
         public override string ToString()
         {
-            if (ReferenceEquals(this , Invalid))
+            if (ReferenceEquals(this, Invalid))
             {
                 return "<Invalid>";
             }
@@ -403,9 +443,17 @@ namespace blqw.Configuration
                 type |= ConfigNodeType.List;
             if (HasValue)
                 type |= ConfigNodeType.Value;
-            return $"{Path} Type={type}";
+            return $"Path=\"{Path}\" \nType={type}";
         }
 
+        protected virtual void OnAppendChildNode(ConfigNode node)
+        {
 
+        }
+
+        protected virtual void OnRemoveChildNode(ConfigNode node)
+        {
+
+        }
     }
 }

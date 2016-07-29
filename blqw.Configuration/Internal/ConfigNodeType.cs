@@ -10,7 +10,7 @@ namespace blqw.Configuration
     /// 配置节点类型
     /// </summary>
     [Flags]
-    public enum ConfigNodeType
+    enum ConfigNodeType
     {
         Null = 0,
         /// <summary>

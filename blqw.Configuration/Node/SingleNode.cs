@@ -36,6 +36,19 @@ namespace blqw.Configuration
             }
         }
 
+        protected override void OnAppendChildNode(ConfigNode node)
+        {
+            if (HasValue) ClearValue();
+            if (node.Key == null)
+            {
+                if (HasDictionary) ClearDictionary();
+            }
+            else
+            {
+                if (HasList) ClearList();
+            }
+        }
+
         public override object Value
         {
             get

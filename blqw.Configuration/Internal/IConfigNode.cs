@@ -71,5 +71,10 @@ namespace blqw.Configuration
         /// 删除当前节点以及子节点中的所有内容
         /// </summary>
         void Delete();
+
+        /// <summary>
+        /// 添加值到当前的节点的列表
+        /// </summary>
+        void Add(object value);
     }
 }

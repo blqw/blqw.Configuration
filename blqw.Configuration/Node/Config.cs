@@ -51,5 +51,77 @@ namespace blqw.Configuration
             }
             return base.CreateTemporary();
         }
+
+        public override ConfigNode this[string path]
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(path))
+                {
+                    return Invalid;
+                }
+                var index = new IndexerArgsParser(path);
+                var ee = index.GetEnumerator();
+                if (ee.MoveNext())
+                {
+                    var i = ee.Current;
+                    var node = i.IsKey ? base[i.Key] : base[i.Index];
+                    while (ee.MoveNext())
+                    {
+                        node = i.IsKey ? node[i.Key] : node[i.Index];
+                    }
+                    return node;
+                }
+                return Invalid;
+            }
+
+            set
+            {
+                if (value == null)
+                {
+                    throw new ArgumentNullException(nameof(value));
+                }
+
+                if (string.IsNullOrEmpty(path))
+                {
+                    throw new ArgumentException(nameof(path), "路径无效");
+                }
+                var index = new IndexerArgsParser(path);
+                var ee = index.GetEnumerator();
+                if (ee.MoveNext())
+                {
+                    var i = ee.Current;
+                    var node = i.IsKey ? base[i.Key] : base[i.Index];
+                    if (ee.MoveNext() == false)
+                    {
+                        if (i.IsKey)
+                        {
+                            base[i.Key] = value;
+                        }
+                        else
+                        {
+                            base[i.Index] = value;
+                        }
+                        return;
+                    }
+
+                    do
+                    {
+                        node = i.IsKey ? node[i.Key] : node[i.Index];
+                    } while (ee.MoveNext());
+
+                    if (i.IsKey)
+                    {
+                        node.Parent[i.Key] = value;
+                    }
+                    else
+                    {
+                        node.Parent[i.Index] = value;
+                    }
+                    return;
+                }
+                throw new ArgumentException(nameof(path), "路径无效");
+            }
+        }
     }
 }

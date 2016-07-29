@@ -47,15 +47,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ConfigNode.bak" />
+    <Compile Include="ConfigNodeExtendsions.cs" />
+    <Compile Include="Configs.cs" />
     <Compile Include="Node\Config.cs" />
     <Compile Include="Node\ConfigNode.cs" />
-    <Compile Include="ConfigNodeType.cs" />
-    <Compile Include="IConfigNode.cs" />
-    <Compile Include="IndexerArgs.cs" />
-    <Compile Include="IndexerArgsParser.cs" />
+    <Compile Include="Internal\ConfigNodeType.cs" />
+    <Compile Include="Internal\IConfigNode.cs" />
+    <Compile Include="Internal\IndexerArgs.cs" />
+    <Compile Include="Internal\IndexerArgsParser.cs" />
     <Compile Include="Node\SingleNode.cs" />
-    <Compile Include="Singleton.cs" />
+    <Compile Include="Internal\Singleton.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
