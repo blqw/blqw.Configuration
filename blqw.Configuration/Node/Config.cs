@@ -126,5 +126,7 @@ namespace blqw.Configuration
                 throw new ArgumentException(nameof(path), "路径无效");
             }
         }
+
+        public void AsReadOnly() => AsReadOnly(true);
     }
 }

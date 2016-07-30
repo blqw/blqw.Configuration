@@ -37,5 +37,63 @@ namespace blqw.ConfigurationTests
             Assert.AreEqual("4", Configs.AppSettings["test"]["d"][0].Value);
             Assert.AreEqual("d", Configs.AppSettings["test"]["d"][1].Value);
         }
+
+        [TestMethod]
+        public void 测试应用到实例属性()
+        {
+
+            /*
+             *  <add key="MyClass.Name" value="blqw"/>
+             *  <add key="Name" value="xxx"/>
+             *  <add key="MyClass.ID" value="1"/>
+             *  <add key="blqw.ConfigurationTests.ConfigsTests.MyClass.ID" value="398"/>
+             *  <add key="MyClass" value="Age=30;Birthday=1986-10-29"/>  
+             */
+
+            var m = new MyClass();
+            Configs.ApplyAppSettings(m);
+            Assert.AreEqual("blqw", m.Name);
+            Assert.AreEqual(398, m.ID);
+            Assert.AreEqual(30m, m.Age);
+            Assert.AreEqual(new DateTime(1986, 10, 29), m.Birthday);
+        }
+
+        class MyClass
+        {
+            public String Name { get; set; }
+            public int ID { get; set; }
+            public decimal Age { get; set; }
+
+            public DateTime Birthday { get; set; }
+
+        }
+
+        [TestMethod]
+        public void 测试应用到静态属性()
+        {
+            /*
+             *  <add key="MyConfig.Version" value="1.0"/>
+             *  <add key="MyConfig.DEBUG" value="true"/>
+             *  <add key="MyConfig.TaskThreadCount" value="50"/>
+             *  <add key="TaskConfig.Thread.Count" value="60"/>
+             *  <add key="MyConfig" value="DEBUG=false;ver=1.2.3"/>
+             */
+
+            Configs.ApplyAppSettings(typeof(MyConfig));
+            Assert.AreEqual("1.2.3", MyConfig.Version);
+            Assert.AreEqual(false, MyConfig.DEBUG);
+            Assert.AreEqual(60, MyConfig.TaskThreadCount);
+        }
+
+        [AppSettsing("TaskConfig")]
+        static class MyConfig
+        {
+            [AppSettsing("ver")]
+            public static string Version { get; private set; }
+
+            public static bool DEBUG { get; private set; } = true;
+            [AppSettsing("Thread.Count")]
+            public static int TaskThreadCount { get; private set; }
+        }
     }
 }

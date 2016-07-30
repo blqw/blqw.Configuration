@@ -291,7 +291,7 @@ namespace blqw.Configuration
         public virtual string Key { get; protected set; }
 
         /// <summary>
-        /// 克隆节点,克隆出的对象不包含父节点和路径
+        /// 克隆节点,克隆出的对象不包含父节点,路径和只读属性
         /// </summary>
         public ConfigNode Clone()
         {
@@ -309,6 +309,7 @@ namespace blqw.Configuration
                     clone.Dictionary.Add(node.Key, node.Clone());
                 }
             }
+            clone.IsReadOnly = false;
             return clone;
         }
 
@@ -397,15 +398,18 @@ namespace blqw.Configuration
         /// <summary>
         /// 是否包含键
         /// </summary>
-        public bool HasDictionary { get { return this.Dictionary?.Count > 0; } }
+        public bool HasDictionary => Dictionary?.Count > 0;
+
         /// <summary>
         /// 是否包含列表
         /// </summary>
-        public bool HasList { get { return this.List?.Count > 0; } }
+        public bool HasList => List?.Count > 0;
+
         /// <summary>
         /// 是否包含值
         /// </summary>
-        public bool HasValue { get { return this.Value != null; } }
+        public bool HasValue => Value != null;
+
         /// <summary>
         /// 是否是null
         /// </summary>
@@ -479,5 +483,27 @@ namespace blqw.Configuration
             return !(a?.Equals(b) ?? b == null);
         }
 
+        /// <summary>
+        /// 将当前节点变为只读
+        /// </summary>
+        /// <param name="changeAllChilds">是否影响子节点</param>
+        public virtual void AsReadOnly(bool changeAllChilds)
+        {
+            IsReadOnly = true;
+            if (!changeAllChilds) return;
+            if (HasDictionary)
+            {
+                foreach (var item in Dictionary)
+                {
+                    item.Value.AsReadOnly(true);
+                }
+            }
+            if (!HasList) return;
+            var list = List;
+            for (int i = 0,length=list.Count; i < length; i++)
+            {
+                list[i]?.AsReadOnly(true);
+            }
+        }
     }
 }
